@@ -21,3 +21,12 @@ func TestTitles(t *testing.T) {
         }
     }
 }
+
+func TestGreetingWithEmoji(t *testing.T) {
+    if got := GreetingWithEmoji("Dev", "🚀"); got != "Hello, Dev! 🚀" {
+        t.Fatalf("unexpected greeting with emoji: %s", got)
+    }
+    if got := GreetingWithEmoji("", ""); got != "Hello, World! 🙂" {
+        t.Fatalf("unexpected fallback emoji greeting: %s", got)
+    }
+}

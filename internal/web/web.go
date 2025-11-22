@@ -20,3 +20,11 @@ func Titles(words []string) []string {
     }
     return titles
 }
+
+// GreetingWithEmoji returns greeting text appended with an emoji.
+func GreetingWithEmoji(name, emoji string) string {
+    if emoji == "" {
+        emoji = "🙂"
+    }
+    return Greeting(name) + " " + emoji
+}
