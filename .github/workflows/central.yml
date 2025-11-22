@@ -1,0 +1,72 @@
+name: central-octocov
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  api:
+    name: API tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      - name: Run API tests
+        run: |
+          mkdir -p coverage/api
+          go test ./internal/api -coverprofile=coverage/api/coverage.out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: api-coverage
+          path: coverage/api
+          if-no-files-found: error
+
+  web:
+    name: Web tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      - name: Run Web tests
+        run: |
+          mkdir -p coverage/web
+          go test ./internal/web -coverprofile=coverage/web/coverage.out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-coverage
+          path: coverage/web
+          if-no-files-found: error
+
+  coverage:
+    name: Aggregate coverage
+    needs:
+      - api
+      - web
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*-coverage'
+          merge-multiple: true
+          path: coverage
+      - name: Show downloaded coverage
+        run: ls -R coverage
+      - name: Run octocov in central mode
+        uses: k1LoW/octocov-action@v1
+        with:
+          config: .octocov.central.yml
+      - name: Comment coverage to PR
+        uses: k1LoW/octocov-action@v1
+        with:
+          config: .octocov.yml

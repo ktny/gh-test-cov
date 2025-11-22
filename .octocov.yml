@@ -1,0 +1,16 @@
+comment:
+  hideFooterLink: true
+  report:
+    datastores:
+      - local://central-reports
+  diff:
+    datastores:
+      - local://central-reports
+report:
+  path:
+    - coverage/**/coverage.out
+  datastores:
+    - local://central-reports
+coverage:
+  path:
+    - coverage/**/coverage.out
