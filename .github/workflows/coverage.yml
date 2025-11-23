@@ -54,7 +54,7 @@ jobs:
       - name: Aggregate results via central mode
         uses: k1LoW/octocov-action@v1
         with:
-          config: .octocov.central.yml
+          config: .octocov.yml
       - name: Comment coverage to PR
         if: github.event_name == 'pull_request'
         uses: k1LoW/octocov-action@v1
