@@ -1,12 +1,10 @@
 name: Coverage Aggregation
 
 on:
-  workflow_run:
-    workflows:
-      - API Tests
-      - Web Tests
-    types:
-      - completed
+  push:
+    branches:
+      - main
+  pull_request:
 
 permissions:
   contents: read
@@ -15,76 +13,50 @@ permissions:
 
 jobs:
   aggregate:
-    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
-      - name: Determine workflow readiness
-        id: gather
-        uses: actions/github-script@v7
+      - name: Wait for API workflow
+        uses: lewagon/wait-on-check-action@v1.3.1
         with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const sha = context.payload.workflow_run.head_sha;
-            const workflows = [
-              { key: 'api', file: 'test-api.yml', artifact: 'api-coverage' },
-              { key: 'web', file: 'test-web.yml', artifact: 'web-coverage' },
-            ];
-            const results = {};
-            let ready = true;
-            for (const wf of workflows) {
-              const { data } = await github.rest.actions.listWorkflowRuns({
-                owner,
-                repo,
-                workflow_id: wf.file,
-                head_sha: sha,
-                per_page: 5,
-              });
-              const run = data.workflow_runs.find((r) => r.head_sha === sha && r.conclusion === 'success');
-              if (!run) {
-                ready = false;
-                break;
-              }
-              results[wf.key] = { run_id: run.id, artifact: wf.artifact };
-            }
-            core.setOutput('ready', ready ? 'true' : 'false');
-            core.setOutput('runs', JSON.stringify(results));
-      - name: Wait for remaining workflows
-        if: steps.gather.outputs.ready != 'true'
-        run: echo "別のワークフロー完了待ちのため処理をスキップします"
-      - name: Checkout
-        if: steps.gather.outputs.ready == 'true'
-        uses: actions/checkout@v4
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          check-name: api
+          wait-interval: 15
+      - name: Wait for Web workflow
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          check-name: web
+          wait-interval: 15
+      - uses: actions/checkout@v4
       - name: Download API coverage
-        if: steps.gather.outputs.ready == 'true'
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v6
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: test-api.yml
+          commit: ${{ github.event.pull_request.head.sha || github.sha }}
           name: api-coverage
-          run-id: ${{ fromJson(steps.gather.outputs.runs).api.run_id }}
           path: coverage/api
-          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Download Web coverage
-        if: steps.gather.outputs.ready == 'true'
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v6
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: test-web.yml
+          commit: ${{ github.event.pull_request.head.sha || github.sha }}
           name: web-coverage
-          run-id: ${{ fromJson(steps.gather.outputs.runs).web.run_id }}
           path: coverage/web
-          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Show gathered coverage files
-        if: steps.gather.outputs.ready == 'true'
         run: ls -R coverage
       - name: Prepare central output directories
-        if: steps.gather.outputs.ready == 'true'
         run: |
           mkdir -p central central-reports central-badges
       - name: Aggregate results via central mode
-        if: steps.gather.outputs.ready == 'true'
         uses: k1LoW/octocov-action@v1
         with:
-          config: .octocov.central.yml
+          config: .octocov.yml
       - name: Comment coverage to PR
-        if: steps.gather.outputs.ready == 'true' && github.event.workflow_run.event == 'pull_request'
+        if: github.event_name == 'pull_request'
         uses: k1LoW/octocov-action@v1
         with:
           config: .octocov.yml

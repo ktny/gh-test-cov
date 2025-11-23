@@ -7,10 +7,16 @@ comment:
     datastores:
       - local://central-reports
 report:
-  path:
-    - coverage/**/coverage.out
+  path: coverage/**/coverage.out
   datastores:
     - local://central-reports
 coverage:
-  path:
-    - coverage/**/coverage.out
+  path: coverage/**/coverage.out
+central:
+  root: central
+  reports:
+    datastores:
+      - local://central-reports
+  badges:
+    datastores:
+      - local://central-badges

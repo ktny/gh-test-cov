@@ -1,8 +1,0 @@
-central:
-  root: central
-  reports:
-    datastores:
-      - local://central-reports
-  badges:
-    datastores:
-      - local://central-badges
